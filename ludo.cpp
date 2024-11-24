@@ -91,6 +91,16 @@ sf::Vector2f get_player_pos(Position_on_board player_pos)
   return pos_vector;
 }
 
+sf::Vector2f get_dice_pos()
+{
+  sf::Vector2f pos_vector;
+
+  pos_vector.x = DICE_POS_X;
+  pos_vector.y = DICE_POS_Y;
+
+  return pos_vector;
+}
+
 void init_all_players(vector<Player> &players)
 {
   Player player;
@@ -113,6 +123,23 @@ void init_all_players(vector<Player> &players)
   }
 }
 
+void init_dice(Dice &dice)
+{
+  dice.curr_value = 0;
+  dice.num_of_faces = NUM_OF_DICE_FACES;
+  dice.range_of_values = {DICE_RANGE_START,DICE_RANGE_END};
+
+  dice.faces.insert({{0,IMAGE_DICE_FACE_0},
+                     {1,IMAGE_DICE_FACE_1},
+                     {2,IMAGE_DICE_FACE_2},
+                     {3,IMAGE_DICE_FACE_3},
+                     {4,IMAGE_DICE_FACE_4},
+                     {5,IMAGE_DICE_FACE_5},
+                     {6,IMAGE_DICE_FACE_6}});
+
+  dice.pos_vector = get_dice_pos();
+}
+
 void init_board(Board *board)
 {
   board->num_of_home_positions = NUM_OF_HOME_POSITIONS;
@@ -120,14 +147,13 @@ void init_board(Board *board)
   board->num_of_final_positions = NUM_OF_FINAL_POSITIONS;
   
   init_all_players(board->players);
+
   board->active_players = 0;
   board->current_player = -1;
   board->finish_game = false;
 
-  board->dice.curr_value = 0;
-  board->dice.num_of_faces = NUM_OF_DICE_FACES;
-  board->dice.range_of_values.first = DICE_RANGE_START;
-  board->dice.range_of_values.second = DICE_RANGE_END;
+  init_dice(board->dice);
+
   board->screen = HOME;
   board->aspectratio = 0;
 }
@@ -190,6 +216,57 @@ void remove_player(Board *board, Position_on_board pos)
   }
 }
 
+void set_viewsize(Board *board, sf::View &view)
+{
+  if (board->aspectratio > 1.0f)
+    view.setSize(BOARD_LEN * board->aspectratio, BOARD_WID);
+  else
+    view.setSize(BOARD_LEN, BOARD_WID / board->aspectratio);
+}
+
+void drawBoard(sf::RenderWindow &window) 
+{
+  // Board size = 750*750
+  using namespace sf;
+  Texture texture;
+  Sprite sprite;
+
+  if (!texture.loadFromFile(IMAGE_LUDO_BOARD)) 
+    return;
+  
+  sprite = Sprite(texture);
+  window.draw(sprite);
+}
+
+void draw_home_button(sf::RenderWindow &window) 
+{
+  using namespace sf;
+  Texture texture;
+  Sprite sprite;
+
+  if (!texture.loadFromFile(IMAGE_HOME_BUTTON))
+    return;
+  
+  sprite = Sprite(texture);
+  sprite.setPosition(HOME_BUTTON_POS_X,HOME_BUTTON_POS_Y);
+  window.draw(sprite);
+}
+
+void draw_dice(sf::RenderWindow &window, Dice &dice) 
+{
+  using namespace sf;
+  Texture texture;
+  Sprite sprite;
+  string file = dice.faces[dice.curr_value];
+
+  if (!texture.loadFromFile(file)) 
+    return;
+  
+  sprite = Sprite(texture);
+  sprite.setPosition(dice.pos_vector);
+  window.draw(sprite);
+}
+
 void draw_remove_player_screen(sf::RenderWindow &window, Player &player)
 {
   using namespace sf;
@@ -241,18 +318,26 @@ void draw_add_remove_player_button(sf::RenderWindow &window, vector<Player> &pla
   }
 }
 
-void draw_home_button(sf::RenderWindow &window) 
+void drawHomeScreen(sf::RenderWindow &window) 
 {
   using namespace sf;
   Texture texture;
   Sprite sprite;
 
-  if (!texture.loadFromFile(IMAGE_HOME_BUTTON))
+  if (!texture.loadFromFile(IMAGE_HOME_SCREEN))
     return;
   
   sprite = Sprite(texture);
-  sprite.setPosition(HOME_BUTTON_POS_X,HOME_BUTTON_POS_Y);
   window.draw(sprite);
+}
+
+void display_play_screen(sf::RenderWindow &window, Board *board)
+{
+  drawBoard(window);
+  draw_home_button(window);
+  // draw_player_gotis(window, board->players); // draw all gotis of all active players
+  draw_dice(window, board->dice);
+  draw_add_remove_player_button(window, board->players);
 }
 
 void draw_exit_screen(sf::RenderWindow &window) 
@@ -267,137 +352,6 @@ void draw_exit_screen(sf::RenderWindow &window)
   sprite = Sprite(texture);
   sprite.setPosition(EXIT_SCREEN_POS_X,EXIT_SCREEN_POS_Y);
   window.draw(sprite);
-}
-
-void drawBoard(sf::RenderWindow &window) 
-{
-  // Board size = 750*750
-  using namespace sf;
-  Texture texture;
-  Sprite sprite;
-
-  if (!texture.loadFromFile(IMAGE_LUDO_BOARD)) 
-    return;
-  
-  sprite = Sprite(texture);
-  window.draw(sprite);
-}
-
-void drawHomeScreen(sf::RenderWindow &window) 
-{
-  using namespace sf;
-  Texture texture;
-  Sprite sprite;
-
-  if (!texture.loadFromFile(IMAGE_HOME_SCREEN))
-    return;
-  
-  sprite = Sprite(texture);
-  window.draw(sprite);
-}
-
-void set_viewsize(Board *board, sf::View &view)
-{
-  if (board->aspectratio > 1.0f)
-    view.setSize(BOARD_LEN * board->aspectratio, BOARD_WID);
-  else
-    view.setSize(BOARD_LEN, BOARD_WID / board->aspectratio);
-}
-
-// Function to draw the dice in the middle of the board (cell 7,7)
-void draw_dice(sf::RenderWindow &window, Board *board) 
-{
-  using namespace sf;
-  #define TILE_SIZE 50
-  #define DICE_SIZE 40
-
-  int diceValue = board->dice.curr_value;
-  RectangleShape dice(Vector2f(DICE_SIZE, DICE_SIZE));
-
-  dice.setFillColor(Color::White);
-  dice.setOutlineColor(Color::Black);
-  dice.setOutlineThickness(2);
-
-  // Position the dice in the middle of the board (cell 7, 7)
-  int diceX = 7 * TILE_SIZE + TILE_SIZE / 2 - DICE_SIZE / 2;
-  int diceY = 7 * TILE_SIZE + TILE_SIZE / 2 - DICE_SIZE / 2;
-  diceY += 27;
-  dice.setPosition(diceX, diceY);
-
-  // Draw the dice background
-  window.draw(dice);
-
-  // Optionally, draw the dice number on it (simple representation using circles)
-  CircleShape dot(5);
-  dot.setFillColor(Color::Black);
-
-  Vector2f topLeft(diceX + 6, diceY + 4);
-  Vector2f topRight(diceX + DICE_SIZE - 15, diceY + 4);
-  Vector2f bottomLeft(diceX + 6, diceY + DICE_SIZE - 14);
-  Vector2f bottomRight(diceX + DICE_SIZE - 15, diceY + DICE_SIZE - 14);
-  Vector2f middleLeft(diceX + 6, diceY + DICE_SIZE / 2 - 5);
-  Vector2f middleRight(diceX + DICE_SIZE - 15, diceY + DICE_SIZE / 2 - 5);
-  Vector2f center(diceX + DICE_SIZE / 2 - 5, diceY + DICE_SIZE / 2 - 5);
-
-  // Dice representation for each value
-  if (diceValue == 1) {
-    dot.setPosition(center);  // Center dot
-    window.draw(dot);
-  } else if (diceValue == 2) {
-    dot.setPosition(topLeft);  // Top-left dot
-    window.draw(dot);
-    dot.setPosition(bottomRight);  // Bottom-right dot
-    window.draw(dot);
-  } else if (diceValue == 3) {
-    dot.setPosition(center);  // Middle dot
-    window.draw(dot);
-    dot.setPosition(topLeft);  // Top-left dot
-    window.draw(dot);
-    dot.setPosition(bottomRight);  // Bottom-right dot
-    window.draw(dot);
-  } else if (diceValue == 4) {
-    dot.setPosition(topLeft);  // Top-left dot
-    window.draw(dot);
-    dot.setPosition(topRight);  // Top-right dot
-    window.draw(dot);
-    dot.setPosition(bottomLeft);  // Bottom-left dot
-    window.draw(dot);
-    dot.setPosition(bottomRight);  // Bottom-right dot
-    window.draw(dot);
-  } else if (diceValue == 5) {
-    dot.setPosition(center);  // Middle dot
-    window.draw(dot);
-    dot.setPosition(topLeft);  // Top-left dot
-    window.draw(dot);
-    dot.setPosition(topRight);  // Top-right dot
-    window.draw(dot);
-    dot.setPosition(bottomLeft);  // Bottom-left dot
-    window.draw(dot);
-    dot.setPosition(bottomRight);  // Bottom-right dot
-    window.draw(dot);
-  } else if (diceValue == 6) {
-    dot.setPosition(topLeft);  // Top-left dot
-    window.draw(dot);
-    dot.setPosition(topRight);  // Top-right dot
-    window.draw(dot);
-    dot.setPosition(middleLeft);  // Middle-left dot
-    window.draw(dot);
-    dot.setPosition(middleRight);  // Middle-right dot
-    window.draw(dot);
-    dot.setPosition(bottomLeft);  // Bottom-left dot
-    window.draw(dot);
-    dot.setPosition(bottomRight);  // Bottom-right dot
-    window.draw(dot);
-  }
-}
-
-void display_play_screen(sf::RenderWindow &window, Board *board)
-{
-  drawBoard(window);
-  draw_home_button(window);
-  // draw_player_gotis(window, board->players); // draw all gotis of all active players
-  draw_dice(window, board);
-  draw_add_remove_player_button(window, board->players);
 }
 
 void display_finish_screen(sf::RenderWindow &window, Board *board) 
@@ -960,10 +914,31 @@ void game_thread(Board *board, queue<pair<Command,void*>> *command_q)
       {
           // Roll dice only if board->screen == PLAY;
 
-          int diceRoll = rand() % 6 + 1; // Roll the dice
-          board->dice.curr_value = diceRoll;
-          // std::cout << "Player rolled: " << diceRoll << std::endl;
-          // player1_x = (player1_x + diceRoll) % BOARD_SIZE; // Move player
+          static int count = 1;
+          static int random_animation = 0;
+          board->dice.curr_value = rand() % 6 + 1;
+
+          if(random_animation == 0)
+          {
+             random_animation = rand() % 20 + 5;
+          }
+
+          printf("Dice: Value<%d> random_animation<%d> count<%d>\t",
+                  board->dice.curr_value, 
+                  random_animation, 
+                  count);
+
+          if(count >= random_animation)
+          {
+            count = 1;
+            random_animation = 0;
+          }
+          else
+          {
+            command_q->push({ROLL_DICE,nullptr});
+            count ++;
+          }
+
           break;
       }
     }

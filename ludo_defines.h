@@ -26,6 +26,13 @@
 #define IMAGE_ADD_PLAYER            "..\\Images\\add_player.png"
 #define IMAGE_REMOVE_PLAYER_SCREEN  "..\\Images\\remove_player.png"
 #define IMAGE_FINISH_SCREEN         "..\\Images\\finish_screen.png"
+#define IMAGE_DICE_FACE_0           "..\\Images\\dice_face_0.png"
+#define IMAGE_DICE_FACE_1           "..\\Images\\dice_face_1.png"
+#define IMAGE_DICE_FACE_2           "..\\Images\\dice_face_2.png"
+#define IMAGE_DICE_FACE_3           "..\\Images\\dice_face_3.png"
+#define IMAGE_DICE_FACE_4           "..\\Images\\dice_face_4.png"
+#define IMAGE_DICE_FACE_5           "..\\Images\\dice_face_5.png"
+#define IMAGE_DICE_FACE_6           "..\\Images\\dice_face_6.png"
 
 #define PLAY_BUTTON_RADIUS 75
 #define PLAY_BUTTON_POS_X 294
@@ -81,6 +88,9 @@
 #define FINISH_SCREEN_ALL_BUTTON_POS_Y EXIT_SCREEN_POS_Y + 202
 #define FINISH_SCREEN_ALL_BUTTON_LEN 138
 #define FINISH_SCREEN_ALL_BUTTON_WID 70
+
+#define DICE_POS_X 345
+#define DICE_POS_Y 371
 
 #define PLAYER_POSITION_ON_BOARD {LEFT_BOTTOM, LEFT_TOP, RIGHT_TOP, RIGHT_BOTTOM}
 #define PLAYER_COLORS {BLUE, RED, GREEN, YELLOW}
