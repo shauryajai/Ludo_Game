@@ -377,7 +377,7 @@ void display_finish_screen(sf::RenderWindow &window, Board *board)
 
   sprite = Sprite(texture);
   sprite.setPosition(EXIT_SCREEN_POS_X,EXIT_SCREEN_POS_Y);
-  //window.draw(sprite);
+  window.draw(sprite);
   window.draw(text);
 }
 
