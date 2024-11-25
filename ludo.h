@@ -18,11 +18,12 @@
 #include "SFML/Graphics.hpp"
 #include <ctime>
 #include <cstdlib> // For system()
-#include <queue>
+#include "ludo_queue.h"
 #include <mutex>
 #include <condition_variable>
 #include <cmath>
 #include "ludo_defines.h"
+#include <sstream> 
 
 using namespace std;
 
@@ -124,6 +125,7 @@ struct Player {
 
 struct Dice {
   int curr_value;
+  bool rolled;
   pair<int, int> range_of_values;
   int num_of_faces;
   map<int,string> faces;

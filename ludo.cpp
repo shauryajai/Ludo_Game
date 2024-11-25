@@ -126,6 +126,7 @@ void init_all_players(vector<Player> &players)
 void init_dice(Dice &dice)
 {
   dice.curr_value = 0;
+  dice.rolled = false;
   dice.num_of_faces = NUM_OF_DICE_FACES;
   dice.range_of_values = {DICE_RANGE_START,DICE_RANGE_END};
 
@@ -357,15 +358,27 @@ void draw_exit_screen(sf::RenderWindow &window)
 void display_finish_screen(sf::RenderWindow &window, Board *board) 
 {
   using namespace sf;
+
   Texture texture;
   Sprite sprite;
+  Text text;
+  std::stringstream sstream;
 
   if (!texture.loadFromFile(IMAGE_FINISH_SCREEN))
     return;
-  
+
+  // text.setFont(font);
+  sstream << "Game over!" << std::endl;
+  text.setString(sstream.str());
+  text.setCharacterSize(50);
+  text.setFillColor(sf::Color::White);
+  // text.setStyle(sf::Text::Bold | sf::Text::Underlined);
+  text.setPosition(EXIT_SCREEN_POS_X + 69,EXIT_SCREEN_POS_Y + 111);
+
   sprite = Sprite(texture);
   sprite.setPosition(EXIT_SCREEN_POS_X,EXIT_SCREEN_POS_Y);
-  window.draw(sprite);
+  //window.draw(sprite);
+  window.draw(text);
 }
 
 void display(sf::RenderWindow &window, Board *board)
@@ -553,7 +566,6 @@ bool is_remove_cancel_player_button_clicked(Board *board, sf::Vector2f mousePos,
       mousePos.x <= PLAYER_LEFT_BOTTOM_POS_X + REMOVE_PLAYER_BUTTON_RELATIVE_X + REMOVE_PLAYER_BUTTON_LEN &&
       mousePos.y >= PLAYER_LEFT_BOTTOM_POS_Y + REMOVE_PLAYER_BUTTON_RELATIVE_Y && 
       mousePos.y <= PLAYER_LEFT_BOTTOM_POS_Y + REMOVE_PLAYER_BUTTON_RELATIVE_Y + REMOVE_PLAYER_BUTTON_WID &&
-      board->players[LEFT_BOTTOM].is_active &&
       board->players[LEFT_BOTTOM].confirm_removal )
   {
     command = REMOVE_PLAYER_LEFT_BOTTOM;
@@ -563,7 +575,6 @@ bool is_remove_cancel_player_button_clicked(Board *board, sf::Vector2f mousePos,
       mousePos.x <= PLAYER_LEFT_TOP_POS_X + REMOVE_PLAYER_BUTTON_RELATIVE_X + REMOVE_PLAYER_BUTTON_LEN &&
       mousePos.y >= PLAYER_LEFT_TOP_POS_Y + REMOVE_PLAYER_BUTTON_RELATIVE_Y && 
       mousePos.y <= PLAYER_LEFT_TOP_POS_Y + REMOVE_PLAYER_BUTTON_RELATIVE_Y + REMOVE_PLAYER_BUTTON_WID &&
-      board->players[LEFT_TOP].is_active &&
       board->players[LEFT_TOP].confirm_removal )
   {
     command = REMOVE_PLAYER_LEFT_TOP;
@@ -573,7 +584,6 @@ bool is_remove_cancel_player_button_clicked(Board *board, sf::Vector2f mousePos,
       mousePos.x <= PLAYER_RIGHT_TOP_POS_X + REMOVE_PLAYER_BUTTON_RELATIVE_X + REMOVE_PLAYER_BUTTON_LEN &&
       mousePos.y >= PLAYER_RIGHT_TOP_POS_Y + REMOVE_PLAYER_BUTTON_RELATIVE_Y && 
       mousePos.y <= PLAYER_RIGHT_TOP_POS_Y + REMOVE_PLAYER_BUTTON_RELATIVE_Y + REMOVE_PLAYER_BUTTON_WID &&
-      board->players[RIGHT_TOP].is_active &&
       board->players[RIGHT_TOP].confirm_removal )
   {
     command = REMOVE_PLAYER_RIGHT_TOP;
@@ -583,7 +593,6 @@ bool is_remove_cancel_player_button_clicked(Board *board, sf::Vector2f mousePos,
       mousePos.x <= PLAYER_RIGHT_BOTTOM_POS_X + REMOVE_PLAYER_BUTTON_RELATIVE_X + REMOVE_PLAYER_BUTTON_LEN &&
       mousePos.y >= PLAYER_RIGHT_BOTTOM_POS_Y + REMOVE_PLAYER_BUTTON_RELATIVE_Y && 
       mousePos.y <= PLAYER_RIGHT_BOTTOM_POS_Y + REMOVE_PLAYER_BUTTON_RELATIVE_Y + REMOVE_PLAYER_BUTTON_WID &&
-      board->players[RIGHT_BOTTOM].is_active &&
       board->players[RIGHT_BOTTOM].confirm_removal )
   {
     command = REMOVE_PLAYER_RIGHT_BOTTOM;
@@ -593,7 +602,6 @@ bool is_remove_cancel_player_button_clicked(Board *board, sf::Vector2f mousePos,
       mousePos.x <= PLAYER_LEFT_BOTTOM_POS_X + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_X + REMOVE_PLAYER_BUTTON_LEN &&
       mousePos.y >= PLAYER_LEFT_BOTTOM_POS_Y + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_Y && 
       mousePos.y <= PLAYER_LEFT_BOTTOM_POS_Y + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_Y + REMOVE_PLAYER_BUTTON_WID &&
-      board->players[LEFT_BOTTOM].is_active &&
       board->players[LEFT_BOTTOM].confirm_removal )
   {
     board->players[LEFT_BOTTOM].confirm_removal = false;
@@ -603,7 +611,6 @@ bool is_remove_cancel_player_button_clicked(Board *board, sf::Vector2f mousePos,
       mousePos.x <= PLAYER_LEFT_TOP_POS_X + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_X + REMOVE_PLAYER_BUTTON_LEN &&
       mousePos.y >= PLAYER_LEFT_TOP_POS_Y + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_Y && 
       mousePos.y <= PLAYER_LEFT_TOP_POS_Y + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_Y + REMOVE_PLAYER_BUTTON_WID &&
-      board->players[LEFT_TOP].is_active &&
       board->players[LEFT_TOP].confirm_removal )
   {
     board->players[LEFT_TOP].confirm_removal = false;
@@ -613,7 +620,6 @@ bool is_remove_cancel_player_button_clicked(Board *board, sf::Vector2f mousePos,
       mousePos.x <= PLAYER_RIGHT_TOP_POS_X + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_X + REMOVE_PLAYER_BUTTON_LEN &&
       mousePos.y >= PLAYER_RIGHT_TOP_POS_Y + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_Y && 
       mousePos.y <= PLAYER_RIGHT_TOP_POS_Y + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_Y + REMOVE_PLAYER_BUTTON_WID &&
-      board->players[RIGHT_TOP].is_active &&
       board->players[RIGHT_TOP].confirm_removal )
   {
     board->players[RIGHT_TOP].confirm_removal = false;
@@ -623,7 +629,6 @@ bool is_remove_cancel_player_button_clicked(Board *board, sf::Vector2f mousePos,
       mousePos.x <= PLAYER_RIGHT_BOTTOM_POS_X + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_X + REMOVE_PLAYER_BUTTON_LEN &&
       mousePos.y >= PLAYER_RIGHT_BOTTOM_POS_Y + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_Y && 
       mousePos.y <= PLAYER_RIGHT_BOTTOM_POS_Y + CANCEL_REMOVE_PLAYER_BUTTON_RELATIVE_Y + REMOVE_PLAYER_BUTTON_WID &&
-      board->players[RIGHT_BOTTOM].is_active &&
       board->players[RIGHT_BOTTOM].confirm_removal )
   {
     board->players[RIGHT_BOTTOM].confirm_removal = false;
@@ -666,7 +671,33 @@ bool is_quit_button_clicked(sf::Vector2f mousePos)
   return false;
 }
 
-void left_mouse_button_pressed(Board *board, sf::Vector2f mousePos, queue<pair<Command,void*>> *command_q)
+bool is_dice_clicked(Board *board, sf::Vector2f mousePos)
+{
+  if(board->active_players < 2)
+  { 
+    cout<<"Minimum 2 players are required to play the game"<<endl;
+    return false;
+  }
+  
+  for(Player &player : board->players)
+  {
+    if(player.confirm_removal)
+    {
+      cout<<"Game paused while a player wants to quit"<<endl;
+      return false;
+    }
+  }
+
+  if( mousePos.x >= DICE_POS_X && 
+      mousePos.x <= DICE_POS_X + DICE_LEN &&
+      mousePos.y >= DICE_POS_Y && 
+      mousePos.y <= DICE_POS_Y + DICE_WID )
+    return true;
+
+  return false;
+}
+
+void left_mouse_button_pressed(Board *board, sf::Vector2f mousePos, Command_q *command_q)
 {
   Command cmd;
 
@@ -683,8 +714,8 @@ void left_mouse_button_pressed(Board *board, sf::Vector2f mousePos, queue<pair<C
       command_q->push({cmd,nullptr});
     else if(is_remove_cancel_player_button_clicked(board, mousePos, cmd))
       command_q->push({cmd,nullptr});
-    // else if(is_dice_clicked())
-    //   command->push(ROLL_DICE);
+    else if(is_dice_clicked(board, mousePos))
+      command_q->push({ROLL_DICE,nullptr});
     else
       command_q->push({IDLE,nullptr});
   }
@@ -706,7 +737,7 @@ void left_mouse_button_pressed(Board *board, sf::Vector2f mousePos, queue<pair<C
   }
 }
 
-void get_command(Board *board, sf::RenderWindow &window, queue<pair<Command,void*>> *command_q)
+void get_command(Board *board, sf::RenderWindow &window, Command_q *command_q)
 {
   using namespace sf;
   Event event;
@@ -730,7 +761,10 @@ void get_command(Board *board, sf::RenderWindow &window, queue<pair<Command,void
         if(event.key.code == Keyboard::Escape)
           command_q->push({CLOSE_WINDOW,nullptr});
         if(event.key.code == Keyboard::Space)
-          command_q->push({ROLL_DICE,nullptr});
+        {
+          if(board->screen == PLAY && is_dice_clicked(board, {DICE_POS_X,DICE_POS_Y}))
+            command_q->push({ROLL_DICE,nullptr});
+        }
         break;
       }
       case Event::MouseButtonPressed:
@@ -753,7 +787,7 @@ void get_command(Board *board, sf::RenderWindow &window, queue<pair<Command,void
   }
 }
 
-void command_thread(Board *board, queue<pair<Command,void*>> *command_q)
+void command_thread(Board *board, Command_q *command_q)
 {
   while(true)
   {
@@ -764,7 +798,36 @@ void command_thread(Board *board, queue<pair<Command,void*>> *command_q)
   }
 }
 
-void game_thread(Board *board, queue<pair<Command,void*>> *command_q)
+void roll_dice(Board *board, Command_q *command_q)
+{
+  static int count = 1;
+  static int random_animation = 0;
+  board->dice.curr_value = rand() % 6 + 1;
+
+  if(random_animation == 0)
+  {
+      random_animation = rand() % 20 + 5;
+  }
+
+  printf("Dice: Value<%d> random_animation<%d> count<%d>\n",
+          board->dice.curr_value, 
+          random_animation, 
+          count);
+
+  if(count >= random_animation) // Roll complete
+  {
+    board->dice.rolled = true;
+    count = 1;
+    random_animation = 0;
+  }
+  else
+  {
+    command_q->push({ROLL_DICE,nullptr});
+    count ++;
+  }
+}
+
+void game_thread(Board *board, Command_q *command_q)
 {
   Command command;
   void *data;
@@ -913,32 +976,7 @@ void game_thread(Board *board, queue<pair<Command,void*>> *command_q)
       case ROLL_DICE:
       {
           // Roll dice only if board->screen == PLAY;
-
-          static int count = 1;
-          static int random_animation = 0;
-          board->dice.curr_value = rand() % 6 + 1;
-
-          if(random_animation == 0)
-          {
-             random_animation = rand() % 20 + 5;
-          }
-
-          printf("Dice: Value<%d> random_animation<%d> count<%d>\t",
-                  board->dice.curr_value, 
-                  random_animation, 
-                  count);
-
-          if(count >= random_animation)
-          {
-            count = 1;
-            random_animation = 0;
-          }
-          else
-          {
-            command_q->push({ROLL_DICE,nullptr});
-            count ++;
-          }
-
+          roll_dice(board, command_q);
           break;
       }
     }
@@ -950,7 +988,8 @@ void game_thread(Board *board, queue<pair<Command,void*>> *command_q)
 
 int main() {
   Board *board = new Board;
-  queue<pair<Command,void*>> *command_q = new (queue<pair<Command,void*>>);
+  Command_q *command_q;
+  command_q = new (Command_q)(COMMAND_QUEUE_MAX_SIZE);
 
   thread Command_thread(command_thread, board, command_q);
   thread Game_thread(game_thread, board, command_q);

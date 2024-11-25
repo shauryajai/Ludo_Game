@@ -5,6 +5,8 @@
 #define sleep_ms(x) this_thread::sleep_for(chrono::milliseconds(x))
 #define sleep_us(x) this_thread::sleep_for(chrono::microseconds(x))
 
+#define COMMAND_QUEUE_MAX_SIZE 2
+
 #define BOARD_LEN 750
 #define BOARD_WID 750
 
@@ -91,6 +93,8 @@
 
 #define DICE_POS_X 345
 #define DICE_POS_Y 371
+#define DICE_LEN 60
+#define DICE_WID 60
 
 #define PLAYER_POSITION_ON_BOARD {LEFT_BOTTOM, LEFT_TOP, RIGHT_TOP, RIGHT_BOTTOM}
 #define PLAYER_COLORS {BLUE, RED, GREEN, YELLOW}
@@ -119,5 +123,7 @@
                 CLOSE_WINDOW, \
                 RESIZE_WINDOW, \
                 ROLL_DICE}
+
+#define Command_q ludo_queue<pair<Command,void*>>
 
 #endif
