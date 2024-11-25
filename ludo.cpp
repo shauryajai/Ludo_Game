@@ -363,17 +363,26 @@ void display_finish_screen(sf::RenderWindow &window, Board *board)
   Sprite sprite;
   Text text;
   std::stringstream sstream;
+  Font font;
+  if (!font.loadFromFile("C:/Windows/Fonts/arial.ttf")) {
+      std::cerr << "Error loading font\n";
+      return;
+  }
 
   if (!texture.loadFromFile(IMAGE_FINISH_SCREEN))
     return;
 
-  // text.setFont(font);
-  sstream << "Game over!" << std::endl;
+  text.setFont(font);
+  sstream << "Game over! "
+          << (Player_color)board->current_player
+          << " player won."
+          << std::endl;
+
   text.setString(sstream.str());
-  text.setCharacterSize(50);
-  text.setFillColor(sf::Color::White);
+  text.setCharacterSize(20);
+  text.setFillColor(Color::White);
   // text.setStyle(sf::Text::Bold | sf::Text::Underlined);
-  text.setPosition(EXIT_SCREEN_POS_X + 69,EXIT_SCREEN_POS_Y + 111);
+  text.setPosition(FINISH_TEXT_POS_X,FINISH_TEXT_POS_Y);
 
   sprite = Sprite(texture);
   sprite.setPosition(EXIT_SCREEN_POS_X,EXIT_SCREEN_POS_Y);
