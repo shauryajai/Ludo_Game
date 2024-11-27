@@ -111,6 +111,7 @@ struct Goti {
   Goti_status status;
   int position;
   bool is_immortal;
+  bool is_movable;
 };
 
 struct Player {
@@ -121,6 +122,7 @@ struct Player {
   int num_of_liberations;
   vector<Goti> gotis;
   bool confirm_removal;
+  bool taking_turn;
 };
 
 struct Dice {

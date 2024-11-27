@@ -39,23 +39,6 @@ int random(int min, int max)
   return rand() % (max - min + 1) + min;
 }
 
-void init_all_gotis(vector<Goti> &gotis)
-{
-  Goti goti;
-  int i;
-
-  gotis.clear();
-
-  for(i=0; i<NUM_OF_GOTIS; i++)
-  {
-    goti.is_immortal = false;
-    goti.position = 0;
-    goti.status = SLEEPING;
-
-    gotis.push_back(goti);
-  }
-}
-
 sf::Vector2f get_player_pos(Position_on_board player_pos)
 {
   sf::Vector2f pos_vector;
@@ -101,6 +84,24 @@ sf::Vector2f get_dice_pos()
   return pos_vector;
 }
 
+void init_all_gotis(vector<Goti> &gotis)
+{
+  Goti goti;
+  int i;
+
+  gotis.clear();
+
+  for(i=0; i<NUM_OF_GOTIS; i++)
+  {
+    goti.is_immortal = false;
+    goti.is_movable = false;
+    goti.position = i;
+    goti.status = SLEEPING;
+
+    gotis.push_back(goti);
+  }
+}
+
 void init_all_players(vector<Player> &players)
 {
   Player player;
@@ -115,6 +116,7 @@ void init_all_players(vector<Player> &players)
     player.pos_vector = get_player_pos(player.id);
     player.is_active = false;
     player.num_of_liberations = 0;
+    player.taking_turn = false;
     player.confirm_removal = false;
 
     init_all_gotis(player.gotis);
@@ -159,9 +161,9 @@ void init_board(Board *board)
   board->aspectratio = 0;
 }
 
-int next_active_player(Board *board, int pos)
+int next_active_player(Board *board)
 {
-  int current_pos = pos;
+  int current_pos = board->current_player;
 
   do
   {
@@ -170,7 +172,7 @@ int next_active_player(Board *board, int pos)
     if(board->players[current_pos].is_active)
       return current_pos;
 
-  } while (current_pos != pos);
+  } while (current_pos != board->current_player);
 
   return -1;  
 }
@@ -190,11 +192,12 @@ void remove_player(Board *board, Position_on_board pos)
   board->players[pos].is_active = false;
   board->players[pos].confirm_removal = false;
   board->players[pos].num_of_liberations = 0;
+  board->players[pos].taking_turn = false;
 
   for(Goti &goti : board->players[pos].gotis)
   {
     goti.is_immortal = false;
-    goti.position = 0;
+    goti.is_movable = false;
     goti.status = SLEEPING;
   }
 
@@ -204,7 +207,8 @@ void remove_player(Board *board, Position_on_board pos)
     board->current_player = -1;
   else
   {
-    board->current_player = next_active_player(board, pos);
+    if(board->current_player == (int)pos)
+      board->current_player = next_active_player(board);
 
     // Lone player wins
     if(board->active_players == 1)
@@ -379,7 +383,7 @@ void display_finish_screen(sf::RenderWindow &window, Board *board)
           << std::endl;
 
   text.setString(sstream.str());
-  text.setCharacterSize(20);
+  text.setCharacterSize(30);
   text.setFillColor(Color::White);
   // text.setStyle(sf::Text::Bold | sf::Text::Underlined);
   text.setPosition(FINISH_TEXT_POS_X,FINISH_TEXT_POS_Y);
@@ -811,6 +815,13 @@ void roll_dice(Board *board, Command_q *command_q)
 {
   static int count = 1;
   static int random_animation = 0;
+
+  if(Current_player.taking_turn)
+  {
+    cout<<"Can't roll! Player<"<<Current_player.color<<"> needs to finish their turn"<<endl;
+    return;
+  }
+
   board->dice.curr_value = rand() % 6 + 1;
 
   if(random_animation == 0)
@@ -818,10 +829,10 @@ void roll_dice(Board *board, Command_q *command_q)
       random_animation = rand() % 20 + 5;
   }
 
-  printf("Dice: Value<%d> random_animation<%d> count<%d>\n",
-          board->dice.curr_value, 
-          random_animation, 
-          count);
+  // printf("Dice: Value<%d> random_animation<%d> count<%d>\n",
+  //         board->dice.curr_value, 
+  //         random_animation, 
+  //         count);
 
   if(count >= random_animation) // Roll complete
   {
@@ -834,6 +845,68 @@ void roll_dice(Board *board, Command_q *command_q)
     command_q->push({ROLL_DICE,nullptr});
     count ++;
   }
+}
+
+void set_movable_gotis(Board *board)
+{
+  bool is_any_goti_movable = false;
+
+  for(Goti &goti : Current_player.gotis)
+  {
+    switch(goti.status)
+    {
+      case SLEEPING:
+      {
+        if(board->dice.curr_value == 6)
+        {
+          goti.is_movable = true;
+        }
+        break;
+      }
+      case ACTIVE:
+      {
+        goti.is_movable = true;
+        break;
+      }
+      case LASTLEG:
+      {
+        if(goti.position + board->dice.curr_value <= board->num_of_final_positions)
+        {
+          goti.is_movable = true;
+        }
+        break;
+      }
+      case LIBERATED:
+      {
+        break;
+      }
+    }
+
+    if(goti.is_movable)
+    {
+      is_any_goti_movable = true;
+      cout<<"Player<"<<Current_player.color<<"> Goti<"<<goti.position<<"> movable"<<endl;
+    }
+  }
+
+  if(!is_any_goti_movable)
+  {
+    Current_player.taking_turn = false;
+    board->current_player = next_active_player(board);
+  }
+}
+
+void dice_rolled(Board *board)
+{
+  cout<<"Dice Rolled! Player<"<<Current_player.color
+      <<"> Dice value<"
+      <<board->dice.curr_value
+      <<">"
+      <<endl;
+
+  Current_player.taking_turn = true;
+  set_movable_gotis(board);
+  board->dice.rolled = false;
 }
 
 void game_thread(Board *board, Command_q *command_q)
@@ -855,7 +928,7 @@ void game_thread(Board *board, Command_q *command_q)
         command = command_q->front().first;
         data = command_q->front().second;
         command_q->pop();
-        cout<<command<<endl;
+        //cout<<command<<endl;
     }
     else command = IDLE;
 
@@ -883,6 +956,7 @@ void game_thread(Board *board, Command_q *command_q)
         for(Player &player : board->players)
         {
           player.num_of_liberations = 0;
+          player.taking_turn = false;
           init_all_gotis(player.gotis);
         }
 
@@ -988,6 +1062,11 @@ void game_thread(Board *board, Command_q *command_q)
           roll_dice(board, command_q);
           break;
       }
+    }
+
+    if(board->dice.rolled)
+    {
+      dice_rolled(board);
     }
 
     display(window, board);

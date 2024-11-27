@@ -50,7 +50,7 @@
 //#define EXIT_SCREEN_LEN 540
 //#define EXIT_SCREEN_WID 405
 
-#define FINISH_TEXT_POS_X EXIT_SCREEN_POS_X + 127
+#define FINISH_TEXT_POS_X EXIT_SCREEN_POS_X + 67
 #define FINISH_TEXT_POS_Y EXIT_SCREEN_POS_Y + 111
 
 #define EXIT_SCREEN_YES_BUTTON_POS_X 182
@@ -128,5 +128,6 @@
                 ROLL_DICE}
 
 #define Command_q ludo_queue<pair<Command,void*>>
+#define Current_player board->players[board->current_player]
 
 #endif
