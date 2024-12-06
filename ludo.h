@@ -28,7 +28,7 @@
 using namespace std;
 
 enum Player_color PLAYER_COLORS;
-enum Position_on_board PLAYER_POSITION_ON_BOARD;
+enum Position_on_board POSITION_ON_BOARD;
 enum Goti_status GOTI_STATUS;
 enum Screen SCREEN;
 enum Command COMMAND;
@@ -102,12 +102,15 @@ std::ostream& operator<<(std::ostream& out, const Command value) {
         case CLOSE_WINDOW: return out << "close window";
         case RESIZE_WINDOW: return out << "resize window";
         case ROLL_DICE: return out << "roll dice";
+        case MOVE_GOTI: return out << "move goti";
     }
 
     return out << "invalid Command";
 }
 
 struct Goti {
+  Position_on_board id;
+  sf::Color color;
   Goti_status status;
   int position;
   bool is_immortal;
@@ -145,6 +148,7 @@ struct Board {
   Dice dice;
   Screen screen;
   float aspectratio;
+  Goti_map goti_map;
 };
 
 #endif

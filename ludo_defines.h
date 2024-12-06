@@ -99,35 +99,88 @@
 #define DICE_LEN 60
 #define DICE_WID 60
 
-#define PLAYER_POSITION_ON_BOARD {LEFT_BOTTOM, LEFT_TOP, RIGHT_TOP, RIGHT_BOTTOM}
+#define POSITION_ON_BOARD {LEFT_BOTTOM, LEFT_TOP, RIGHT_TOP, RIGHT_BOTTOM}
 #define PLAYER_COLORS {BLUE, RED, GREEN, YELLOW}
 #define GOTI_STATUS {SLEEPING, ACTIVE, LASTLEG, LIBERATED}
 #define SCREEN {HOME, PLAY, EXIT, FINISH}
-#define COMMAND {IDLE, \
-                START_GAME, \
-                EXIT_GAME, \
-                RESTART_GAME, \
-                NEW_GAME, \
-                GOTO_HOME, \
-                BACK_TO_GAME, \
-                FINISH_GAME, \
-                ADD_PLAYER_LEFT_BOTTOM, \
-                ADD_PLAYER_LEFT_TOP, \
-                ADD_PLAYER_RIGHT_TOP, \
-                ADD_PLAYER_RIGHT_BOTTOM, \
-                CONFIRM_PLAYER_REMOVAL_LEFT_BOTTOM, \
-                CONFIRM_PLAYER_REMOVAL_LEFT_TOP, \
-                CONFIRM_PLAYER_REMOVAL_RIGHT_TOP, \
-                CONFIRM_PLAYER_REMOVAL_RIGHT_BOTTOM, \
-                REMOVE_PLAYER_LEFT_BOTTOM, \
-                REMOVE_PLAYER_LEFT_TOP, \
-                REMOVE_PLAYER_RIGHT_TOP, \
-                REMOVE_PLAYER_RIGHT_BOTTOM, \
-                CLOSE_WINDOW, \
-                RESIZE_WINDOW, \
-                ROLL_DICE}
+#define COMMAND { \
+                  IDLE, \
+                  START_GAME, \
+                  EXIT_GAME, \
+                  RESTART_GAME, \
+                  NEW_GAME, \
+                  GOTO_HOME, \
+                  BACK_TO_GAME, \
+                  FINISH_GAME, \
+                  ADD_PLAYER_LEFT_BOTTOM, \
+                  ADD_PLAYER_LEFT_TOP, \
+                  ADD_PLAYER_RIGHT_TOP, \
+                  ADD_PLAYER_RIGHT_BOTTOM, \
+                  CONFIRM_PLAYER_REMOVAL_LEFT_BOTTOM, \
+                  CONFIRM_PLAYER_REMOVAL_LEFT_TOP, \
+                  CONFIRM_PLAYER_REMOVAL_RIGHT_TOP, \
+                  CONFIRM_PLAYER_REMOVAL_RIGHT_BOTTOM, \
+                  REMOVE_PLAYER_LEFT_BOTTOM, \
+                  REMOVE_PLAYER_LEFT_TOP, \
+                  REMOVE_PLAYER_RIGHT_TOP, \
+                  REMOVE_PLAYER_RIGHT_BOTTOM, \
+                  CLOSE_WINDOW, \
+                  RESIZE_WINDOW, \
+                  ROLL_DICE, \
+                  MOVE_GOTI, \
+                }
 
-#define Command_q ludo_queue<pair<Command,void*>>
+#define GOTI_MAP  {                                                                               \
+                    { SLEEPING, {                                                                 \
+                                  {0 ,{135,635}}, {1 ,{135,562}}, {2 ,{214,562}}, {3 ,{214,635}}, \
+                                  {4 ,{135,237}}, {5 ,{135,165}}, {6 ,{214,165}}, {7 ,{214,237}}, \
+                                  {8 ,{533,237}}, {9 ,{533,165}}, {10,{612,165}}, {11,{612,237}}, \
+                                  {12,{533,635}}, {13,{533,562}}, {14,{612,562}}, {15,{612,635}}, \
+                                }                                                                 \
+                    },                                                                            \
+                    { ACTIVE,   {                                                                 \
+                                  {0 ,{330,667}}, {1 ,{330,623}}, {2 ,{330,579}}, {3 ,{330,535}}, \
+                                  {4 ,{330,491}}, {5 ,{286,446}}, {6 ,{242,446}}, {7 ,{198,446}}, \
+                                  {8 ,{154,446}}, {9 ,{110,446}}, {10,{65 ,446}}, {11,{65 ,402}}, \
+                                  {12,{65 ,358}}, {13,{110,358}}, {14,{154,358}}, {15,{198,358}}, \
+                                  {16,{242,358}}, {17,{286,358}}, {18,{330,312}}, {19,{330,268}}, \
+                                  {20,{330,224}}, {21,{330,180}}, {22,{330,136}}, {23,{330,92 }}, \
+                                  {24,{374,92 }}, {25,{418,92 }}, {26,{418,136}}, {27,{418,180}}, \
+                                  {28,{418,224}}, {29,{418,268}}, {30,{418,312}}, {31,{463,358}}, \
+                                  {32,{507,358}}, {33,{551,358}}, {34,{595,358}}, {35,{639,358}}, \
+                                  {36,{683,358}}, {37,{683,402}}, {38,{683,446}}, {39,{639,446}}, \
+                                  {40,{595,446}}, {41,{551,446}}, {42,{507,446}}, {43,{463,446}}, \
+                                  {44,{418,491}}, {45,{418,535}}, {46,{418,579}}, {47,{418,623}}, \
+                                  {48,{418,667}}, {49,{418,711}}, {50,{374,711}}, {51,{330,711}}, \
+                                }                                                                 \
+                    },                                                                            \
+                    { LASTLEG, {                                                                  \
+                                  {0 ,{374,667}}, {1 ,{374,623}}, {2 ,{374,579}}, {3 ,{374,535}}, \
+                                  {4 ,{374,491}}, {5 ,{110,402}}, {6 ,{154,402}}, {7 ,{198,402}}, \
+                                  {8 ,{242,402}}, {9 ,{286,402}}, {10,{374,136}}, {11,{374,180}}, \
+                                  {12,{374,224}}, {13,{374,268}}, {14,{374,312}}, {15,{639,402}}, \
+                                  {16,{595,402}}, {17,{551,402}}, {18,{507,402}}, {19,{463,402}}, \
+                                }                                                                 \
+                    },                                                                            \
+                    { LIBERATED, {                                                                \
+                                  {0 ,{363,454}}, {1 ,{385,454}}, {2 ,{341,454}}, {3 ,{407,454}}, \
+                                  {4 ,{321,391}}, {5 ,{321,413}}, {6 ,{321,369}}, {7 ,{321,435}}, \
+                                  {8 ,{385,348}}, {9 ,{363,348}}, {10,{407,348}}, {11,{341,348}}, \
+                                  {12,{428,413}}, {13,{428,391}}, {14,{428,435}}, {15,{428,369}}, \
+                                }                                                                 \
+                    },                                                                            \
+                  }                                                                               \
+
+#define GOTI_BLK_MAX_RADIUS 22
+#define GOTI_RADIUS GOTI_BLK_MAX_RADIUS/2
+#define GOTI_OUTLINE_COLOR Color::Black
+#define GOTI_OUTLINE_THICKNESS 2
+#define GOTI_SHADOW_OFFSET 5,5
+#define GOTI_SHADOW_COLOR Color(0, 0, 0, 100) // Semi-transparent black color
+
+       
+#define Command_q ludo_queue<pair<Command,uint32_t>>
 #define Current_player board->players[board->current_player]
+#define Goti_map map<Goti_status,map<int,sf::Vector2f>>
 
 #endif

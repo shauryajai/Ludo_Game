@@ -84,7 +84,26 @@ sf::Vector2f get_dice_pos()
   return pos_vector;
 }
 
-void init_all_gotis(vector<Goti> &gotis)
+sf::Color __to_sfml_color(Player_color color)
+{
+  using namespace sf;
+
+  switch(color)
+  {
+    case BLUE:
+      return Color::Blue;
+    case RED:
+      return Color::Red;
+    case GREEN:
+      return Color::Green;
+    case YELLOW:
+      return Color::Yellow;
+  }
+
+  return Color::White;
+}
+
+void init_all_gotis(vector<Goti> &gotis, Player player)
 {
   Goti goti;
   int i;
@@ -93,6 +112,8 @@ void init_all_gotis(vector<Goti> &gotis)
 
   for(i=0; i<NUM_OF_GOTIS; i++)
   {
+    goti.id = (Position_on_board)i;
+    goti.color = __to_sfml_color(player.color);
     goti.is_immortal = false;
     goti.is_movable = false;
     goti.position = i;
@@ -119,7 +140,7 @@ void init_all_players(vector<Player> &players)
     player.taking_turn = false;
     player.confirm_removal = false;
 
-    init_all_gotis(player.gotis);
+    init_all_gotis(player.gotis, player);
 
     players.push_back(player);
   }
@@ -159,6 +180,7 @@ void init_board(Board *board)
 
   board->screen = HOME;
   board->aspectratio = 0;
+  board->goti_map = GOTI_MAP;
 }
 
 int next_active_player(Board *board)
@@ -257,6 +279,103 @@ void draw_home_button(sf::RenderWindow &window)
   window.draw(sprite);
 }
 
+sf::Vector2f get_goti_pos_vector(Board *board, Position_on_board player_id, Position_on_board goti_id)
+{
+  sf::Vector2f goti_pos_vector = {0,0};
+  Goti_status goti_status = board->players[player_id].gotis[goti_id].status;
+  int goti_pos = board->players[player_id].gotis[goti_id].position;
+  int relative_pos;
+  
+  switch(goti_status)
+  {
+    case SLEEPING:
+    {
+      relative_pos = player_id*NUM_OF_TOTAL_PLAYERS + goti_pos;
+      break;
+    }
+    case ACTIVE:
+    {
+      relative_pos = player_id*(NUM_OF_LAP_POSITIONS/NUM_OF_TOTAL_PLAYERS) + goti_pos;
+      relative_pos %= NUM_OF_LAP_POSITIONS;
+      break;
+    }
+    case LASTLEG:
+    {
+      relative_pos = player_id*NUM_OF_FINAL_POSITIONS + goti_pos;
+      break;
+    }
+    case LIBERATED:
+    {
+      relative_pos = player_id*NUM_OF_TOTAL_PLAYERS + goti_pos;
+      break;
+    }
+  }
+
+  goti_pos_vector = board->goti_map[goti_status][relative_pos];
+
+  return goti_pos_vector;
+}
+
+void draw_gotis(sf::RenderWindow &window, Board *board)
+{
+  using namespace sf;
+  CircleShape piece(GOTI_RADIUS);
+  CircleShape shadow(piece.getRadius());
+  Vector2f goti_pos_vector; 
+    
+  for(Player &player : board->players)
+  {
+    for(Goti &goti : player.gotis)
+    {
+      goti_pos_vector = get_goti_pos_vector(board, player.id, goti.id);
+
+      // Below code could look like magic but it's not.
+      // Reducing Goti_BLK_RADIUS from x and y coordinates because sfml draws the circle 
+      // (or any other entity) starting from the top left position.
+      goti_pos_vector.x -= GOTI_RADIUS;
+      goti_pos_vector.y -= GOTI_RADIUS;
+
+      piece.setPosition(goti_pos_vector);
+
+      // draw goti shadow
+      shadow.setFillColor(GOTI_SHADOW_COLOR);
+      shadow.setPosition(piece.getPosition() + Vector2f(GOTI_SHADOW_OFFSET));
+      window.draw(shadow);
+
+      // draw main goti
+      piece.setOutlineColor(GOTI_OUTLINE_COLOR);
+      piece.setOutlineThickness(GOTI_OUTLINE_THICKNESS);
+      piece.setFillColor(goti.color);
+
+      if(goti.is_movable)
+      {
+        // toggle goti color and outline color and thickness
+        static int count = 0;
+        static bool toggle = false;
+
+        if(count >= 100)
+        {
+          toggle ^= true;
+          count = 0;
+        }
+        else
+        {
+          count ++;
+        }
+
+        if(toggle)
+        {
+          piece.setOutlineColor(Color::White);
+          // piece.setOutlineThickness(GOTI_OUTLINE_THICKNESS+2);
+          // piece.setFillColor(GOTI_SHADOW_COLOR);
+        }
+      }
+
+      window.draw(piece);
+    }
+  }
+}
+
 void draw_dice(sf::RenderWindow &window, Dice &dice) 
 {
   using namespace sf;
@@ -340,7 +459,7 @@ void display_play_screen(sf::RenderWindow &window, Board *board)
 {
   drawBoard(window);
   draw_home_button(window);
-  // draw_player_gotis(window, board->players); // draw all gotis of all active players
+  draw_gotis(window, board); // draw all gotis of all active players
   draw_dice(window, board->dice);
   draw_add_remove_player_button(window, board->players);
 }
@@ -710,43 +829,75 @@ bool is_dice_clicked(Board *board, sf::Vector2f mousePos)
   return false;
 }
 
+bool is_goti_clicked(Board *board, sf::Vector2f mousePos, uint32_t &data)
+{
+  sf::Vector2f goti_pos_vector;
+  float dx, dy, distance;
+
+  if(!Current_player.taking_turn)
+    return false;
+
+  for(Goti &goti : Current_player.gotis)
+  {
+    if(goti.is_movable)
+    {
+      goti_pos_vector = get_goti_pos_vector(board, Current_player.id, goti.id);
+
+      dx = mousePos.x - goti_pos_vector.x;
+      dy = mousePos.y - goti_pos_vector.y;
+      distance = sqrt(dx * dx + dy * dy);
+
+      if (distance <= GOTI_RADIUS)
+      {
+        data = (uint32_t)goti.id;
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 void left_mouse_button_pressed(Board *board, sf::Vector2f mousePos, Command_q *command_q)
 {
   Command cmd;
+  uint32_t data;
 
   if(board->screen == HOME)
   {
     if(is_play_button_clicked(mousePos))
-      command_q->push({START_GAME,nullptr});
+      command_q->push({START_GAME,0});
   }
   else if(board->screen == PLAY)
   {
     if(is_home_button_clicked(mousePos))
-      command_q->push({EXIT_GAME,nullptr});
+      command_q->push({EXIT_GAME,0});
     else if(is_add_remove_player_icon_clicked(board, mousePos, cmd))
-      command_q->push({cmd,nullptr});
+      command_q->push({cmd,0});
     else if(is_remove_cancel_player_button_clicked(board, mousePos, cmd))
-      command_q->push({cmd,nullptr});
+      command_q->push({cmd,0});
     else if(is_dice_clicked(board, mousePos))
-      command_q->push({ROLL_DICE,nullptr});
+      command_q->push({ROLL_DICE,0});
+    else if(is_goti_clicked(board, mousePos, data))
+      command_q->push({MOVE_GOTI,data});
     else
-      command_q->push({IDLE,nullptr});
+      command_q->push({IDLE,0});
   }
   else if(board->screen == EXIT)
   {
     if(is_yes_button_clicked(mousePos))
-      command_q->push({GOTO_HOME,nullptr});
+      command_q->push({GOTO_HOME,0});
     else if(is_no_button_clicked(mousePos))
-      command_q->push({BACK_TO_GAME,nullptr});
+      command_q->push({BACK_TO_GAME,0});
   }
   else if(board->screen == FINISH)
   {
     if(is_restart_game_button_clicked(mousePos))
-      command_q->push({RESTART_GAME,nullptr});
+      command_q->push({RESTART_GAME,0});
     else if(is_new_game_button_clicked(mousePos))
-      command_q->push({NEW_GAME,nullptr});
+      command_q->push({NEW_GAME,0});
     else if(is_quit_button_clicked(mousePos))
-      command_q->push({GOTO_HOME,nullptr});
+      command_q->push({GOTO_HOME,0});
   }
 }
 
@@ -760,23 +911,23 @@ void get_command(Board *board, sf::RenderWindow &window, Command_q *command_q)
     {
       case Event::Closed:
       {
-        command_q->push({CLOSE_WINDOW,nullptr});
+        command_q->push({CLOSE_WINDOW,0});
         break;
       }
       case Event::Resized:
       {
         board->aspectratio = float(event.size.width) / float(event.size.height);
-        command_q->push({RESIZE_WINDOW,nullptr});
+        command_q->push({RESIZE_WINDOW,0});
         break;
       }
       case Event::KeyPressed:
       {
         if(event.key.code == Keyboard::Escape)
-          command_q->push({CLOSE_WINDOW,nullptr});
+          command_q->push({CLOSE_WINDOW,0});
         if(event.key.code == Keyboard::Space)
         {
           if(board->screen == PLAY && is_dice_clicked(board, {DICE_POS_X,DICE_POS_Y}))
-            command_q->push({ROLL_DICE,nullptr});
+            command_q->push({ROLL_DICE,0});
         }
         break;
       }
@@ -794,7 +945,7 @@ void get_command(Board *board, sf::RenderWindow &window, Command_q *command_q)
       default:
       {
         if(board->finish_game)
-          command_q->push({FINISH_GAME,nullptr});
+          command_q->push({FINISH_GAME,0});
       }
     }
   }
@@ -842,9 +993,65 @@ void roll_dice(Board *board, Command_q *command_q)
   }
   else
   {
-    command_q->push({ROLL_DICE,nullptr});
+    command_q->push({ROLL_DICE,0});
     count ++;
   }
+}
+
+void set_current_player_goti_immovable(Board *board)
+{
+  for(Goti &goti : Current_player.gotis)
+    goti.is_movable = false;
+}
+
+void move_goti(Board *board, Position_on_board goti_id)
+{
+  Goti &goti = Current_player.gotis[goti_id];
+  
+  switch(goti.status)
+  {
+    case SLEEPING:
+    {
+      goti.status = ACTIVE;
+      goti.position = 0;
+
+      break;
+    }
+    case ACTIVE:
+    {
+      goti.position += board->dice.curr_value;
+      
+      if(goti.position >= NUM_OF_LAP_POSITIONS)
+      {
+        goti.position = goti.position - NUM_OF_LAP_POSITIONS + 1;
+        goti.status = LASTLEG;
+      }
+
+      break;
+    }
+    case LASTLEG:
+    {
+      goti.position += board->dice.curr_value;
+      
+      if(goti.position == NUM_OF_FINAL_POSITIONS)
+      {
+        goti.status = LIBERATED;
+        Current_player.num_of_liberations ++;
+      }
+      else if(goti.position > NUM_OF_FINAL_POSITIONS)
+      {
+        goti.position -= board->dice.curr_value;
+      }
+
+      break;
+    }
+    case LIBERATED:
+    {
+      break;
+    }
+  }
+
+  set_current_player_goti_immovable(board);
 }
 
 void set_movable_gotis(Board *board)
@@ -912,14 +1119,14 @@ void dice_rolled(Board *board)
 void game_thread(Board *board, Command_q *command_q)
 {
   Command command;
-  void *data;
+  uint32_t data;
   sf::RenderWindow window(sf::VideoMode(BOARD_LEN, BOARD_WID), "Ludo Game");
   sf::View view(sf::FloatRect(0, 0, BOARD_LEN, BOARD_WID));
 
   // Enable vertical synchronization (V-Sync)
   window.setVerticalSyncEnabled(true);
 
-  command_q->push({IDLE,nullptr});
+  command_q->push({IDLE,0});
   while (window.isOpen()) {
     get_command(board, window, command_q);
 
@@ -928,7 +1135,7 @@ void game_thread(Board *board, Command_q *command_q)
         command = command_q->front().first;
         data = command_q->front().second;
         command_q->pop();
-        //cout<<command<<endl;
+        cout<<command<<endl;
     }
     else command = IDLE;
 
@@ -957,7 +1164,7 @@ void game_thread(Board *board, Command_q *command_q)
         {
           player.num_of_liberations = 0;
           player.taking_turn = false;
-          init_all_gotis(player.gotis);
+          init_all_gotis(player.gotis, player);
         }
 
         board->screen = PLAY;
@@ -1058,9 +1265,15 @@ void game_thread(Board *board, Command_q *command_q)
       }
       case ROLL_DICE:
       {
-          // Roll dice only if board->screen == PLAY;
-          roll_dice(board, command_q);
-          break;
+        // Roll dice only if board->screen == PLAY;
+        roll_dice(board, command_q);
+        break;
+      }
+      case MOVE_GOTI:
+      {
+        move_goti(board,(Position_on_board)data);
+        Current_player.taking_turn = false;
+        board->current_player = next_active_player(board);
       }
     }
 
