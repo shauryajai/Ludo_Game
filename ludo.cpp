@@ -1004,6 +1004,22 @@ void set_current_player_goti_immovable(Board *board)
     goti.is_movable = false;
 }
 
+void liberate_moving_goti(Board *board, Position_on_board goti_id)
+{
+  Goti &goti = Current_player.gotis[goti_id];
+
+  goti.status = LIBERATED;
+  goti.position = goti_id;
+
+  Current_player.num_of_liberations ++;
+
+  if(Current_player.num_of_liberations >= NUM_OF_GOTIS)
+  {
+    board->finish_game = true;
+    cout<<"Game over: player won - "<<Current_player.color<<" ("<<Current_player.id<<")"<<endl;
+  }
+}
+
 void move_goti(Board *board, Position_on_board goti_id)
 {
   Goti &goti = Current_player.gotis[goti_id];
@@ -1018,15 +1034,20 @@ void move_goti(Board *board, Position_on_board goti_id)
       break;
     }
     case ACTIVE:
-    {
-      goti.position += board->dice.curr_value;
-      
-      if(goti.position >= NUM_OF_LAP_POSITIONS)
+    {      
+      if((goti.position + board->dice.curr_value) == (NUM_OF_LAP_POSITIONS - 2) + 6)
       {
-        goti.position = goti.position - NUM_OF_LAP_POSITIONS + 1;
+        liberate_moving_goti(board, goti_id);
+      }
+      else if((goti.position + board->dice.curr_value) > (NUM_OF_LAP_POSITIONS - 2))
+      {
+        goti.position += board->dice.curr_value - NUM_OF_LAP_POSITIONS + 1;
         goti.status = LASTLEG;
       }
-
+      else
+      {
+        goti.position += board->dice.curr_value;
+      }
       break;
     }
     case LASTLEG:
@@ -1035,8 +1056,7 @@ void move_goti(Board *board, Position_on_board goti_id)
       
       if(goti.position == NUM_OF_FINAL_POSITIONS)
       {
-        goti.status = LIBERATED;
-        Current_player.num_of_liberations ++;
+        liberate_moving_goti(board, goti_id);
       }
       else if(goti.position > NUM_OF_FINAL_POSITIONS)
       {
@@ -1064,7 +1084,7 @@ void set_movable_gotis(Board *board)
     {
       case SLEEPING:
       {
-        if(board->dice.curr_value == 6)
+        if(board->dice.curr_value == DICE_RANGE_END)
         {
           goti.is_movable = true;
         }
@@ -1273,7 +1293,12 @@ void game_thread(Board *board, Command_q *command_q)
       {
         move_goti(board,(Position_on_board)data);
         Current_player.taking_turn = false;
-        board->current_player = next_active_player(board);
+
+        if( board->dice.curr_value != DICE_RANGE_END &&
+            !board->finish_game )
+        {
+          board->current_player = next_active_player(board);
+        }
       }
     }
 
