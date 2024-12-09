@@ -347,28 +347,11 @@ void draw_gotis(sf::RenderWindow &window, Board *board)
       piece.setOutlineThickness(GOTI_OUTLINE_THICKNESS);
       piece.setFillColor(goti.color);
 
-      if(goti.is_movable)
+      if(goti.is_movable && board->is_goti_movable_animation_toggle)
       {
-        // toggle goti color and outline color and thickness
-        static int count = 0;
-        static bool toggle = false;
-
-        if(count >= 100)
-        {
-          toggle ^= true;
-          count = 0;
-        }
-        else
-        {
-          count ++;
-        }
-
-        if(toggle)
-        {
-          piece.setOutlineColor(Color::White);
-          // piece.setOutlineThickness(GOTI_OUTLINE_THICKNESS+2);
-          // piece.setFillColor(GOTI_SHADOW_COLOR);
-        }
+        piece.setOutlineColor(Color::White);
+        // piece.setOutlineThickness(GOTI_OUTLINE_THICKNESS+2);
+        // piece.setFillColor(GOTI_SHADOW_COLOR);
       }
 
       window.draw(piece);
@@ -951,6 +934,21 @@ void get_command(Board *board, sf::RenderWindow &window, Command_q *command_q)
   }
 }
 
+void goti_movable_animation_toggler(Board *board)
+{
+  static int count = 0;
+
+  if(count >= 35)
+  {
+    board->is_goti_movable_animation_toggle ^= true;
+    count = 0;
+
+    return;
+  }
+
+  count ++;
+}
+
 void command_thread(Board *board, Command_q *command_q)
 {
   while(true)
@@ -958,8 +956,33 @@ void command_thread(Board *board, Command_q *command_q)
     // TODO: update the board command queue if needed based on the command line user input
     // Developers can interrupt the game at any point from command line.
 
+    goti_movable_animation_toggler(board);
+
     sleep_ms(1);
   }
+}
+
+bool same_player_rolled_3_consecutive_6s(int curr_player, int curr_dice)
+{
+  static int prev_player = -1;
+  static int prev_dice   = -1;
+  static int count = 0;
+
+  if( curr_player == prev_player &&
+      curr_dice == prev_dice )
+  {
+    count ++;
+  }
+  else
+    count = 0;
+  
+  if(count >= 2)
+    return true;
+
+  prev_player = curr_player;
+  prev_dice = curr_dice;
+
+  return false;
 }
 
 void roll_dice(Board *board, Command_q *command_q)
@@ -973,7 +996,7 @@ void roll_dice(Board *board, Command_q *command_q)
     return;
   }
 
-  board->dice.curr_value = rand() % 6 + 1;
+  board->dice.curr_value = rand() % NUM_OF_DICE_FACES + 1;
 
   if(random_animation == 0)
   {
@@ -990,6 +1013,10 @@ void roll_dice(Board *board, Command_q *command_q)
     board->dice.rolled = true;
     count = 1;
     random_animation = 0;
+
+    // did the same player rolled 3 consecutive 6s?
+    if(same_player_rolled_3_consecutive_6s(board->current_player, board->dice.curr_value))
+      board->dice.curr_value = (rand() % (NUM_OF_DICE_FACES -1)) + 1;
   }
   else
   {

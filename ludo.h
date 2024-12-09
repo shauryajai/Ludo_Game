@@ -149,6 +149,7 @@ struct Board {
   Screen screen;
   float aspectratio;
   Goti_map goti_map;
+  bool is_goti_movable_animation_toggle;
 };
 
 #endif
