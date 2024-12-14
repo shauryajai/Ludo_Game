@@ -1061,7 +1061,7 @@ void goti_set_delete(Board *board, Position_on_board goti_id, Goti_status goti_s
   int relative_pos = get_goti_relative_pos(board, Current_player.id, goti_id);
   board->goti_map[goti_status][relative_pos].curr_gotis.erase({Current_player.id,goti_id});
 
-  // if goti set size < 2 then un-stack the gotis
+  //TODO: if goti set size < 2 then un-stack the gotis
 
 }
 
@@ -1105,7 +1105,7 @@ void goti_set_add(Board *board, Position_on_board goti_id, Goti_status goti_stat
 
   if(board->goti_map[ACTIVE][relative_pos].is_star)
     cout<<"Goti at star"<<endl;
-  // if goti set size > 1 then stack the gotis
+  //TODO: if goti set size > 1 then stack the gotis
 
 }
 
@@ -1122,7 +1122,7 @@ bool move_goti(Board *board, Position_on_board goti_id)
     {
       goti.status = ACTIVE;
       goti.position = 0;
-      goti.is_immortal = true;
+      goti.is_immortal = true; //TODO: Seems like we dont need this field in goti struct
       break;
     }
     case ACTIVE:
@@ -1189,6 +1189,9 @@ void set_movable_gotis(Board *board)
       case ACTIVE:
       {
         goti.is_movable = true;
+
+        //TODO: Goti is not movable if there is castling in front of it
+
         break;
       }
       case LASTLEG:
