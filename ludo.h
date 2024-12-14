@@ -137,6 +137,12 @@ struct Dice {
   sf::Vector2f pos_vector;
 };
 
+struct goti_map_info {
+  sf::Vector2f pos;
+  bool is_star;
+  set<pair<Position_on_board,Position_on_board>> curr_gotis;
+};
+
 struct Board {
   int num_of_home_positions;
   int num_of_lap_positions;

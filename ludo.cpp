@@ -319,7 +319,7 @@ sf::Vector2f get_goti_pos_vector(Board *board, Position_on_board player_id, Posi
   Goti_status goti_status = board->players[player_id].gotis[goti_id].status;
   int relative_pos = get_goti_relative_pos(board, player_id, goti_id);
 
-  goti_pos_vector = board->goti_map[goti_status][relative_pos];
+  goti_pos_vector = board->goti_map[goti_status][relative_pos].pos;
 
   return goti_pos_vector;
 }
@@ -1056,32 +1056,73 @@ bool liberate_moving_goti(Board *board, Position_on_board goti_id)
   return true;
 }
 
+void goti_set_delete(Board *board, Position_on_board goti_id, Goti_status goti_status)
+{
+  int relative_pos = get_goti_relative_pos(board, Current_player.id, goti_id);
+  board->goti_map[goti_status][relative_pos].curr_gotis.erase({Current_player.id,goti_id});
+
+  // if goti set size < 2 then un-stack the gotis
+
+}
+
 void after_goti_moved_in_active_status(Board *board, Position_on_board goti_id)
 {
   Goti &goti = Current_player.gotis[goti_id];
   int relative_pos = get_goti_relative_pos(board, Current_player.id, goti.id);
 
-  // if goti position is immortal
-  if(0)
+  // if goti position is star
+  if(board->goti_map[ACTIVE][relative_pos].is_star)
+    goti.is_immortal = true;
+  else
   {
+    goti.is_immortal = false;
+
+    // if any other player is already in the spot, then cut it
+    if(board->goti_map[ACTIVE][relative_pos].curr_gotis.size() == 1)
+    {
+      for (auto& curr_gotis : board->goti_map[ACTIVE][relative_pos].curr_gotis)
+      {
+        Position_on_board player_id_in_set = curr_gotis.first;
+        Position_on_board goti_id_in_set = curr_gotis.second;
+
+        if(player_id_in_set != Current_player.id)
+        {
+          board->players[player_id_in_set].gotis[goti_id_in_set].status = SLEEPING;
+          board->players[player_id_in_set].gotis[goti_id_in_set].position = goti_id_in_set;
+
+          board->goti_map[ACTIVE][relative_pos].curr_gotis.clear();
+        }
+      }
+    }
 
   }
-  else
-    goti.is_immortal = false;
+}
+
+void goti_set_add(Board *board, Position_on_board goti_id, Goti_status goti_status)
+{
+  int relative_pos = get_goti_relative_pos(board, Current_player.id, goti_id);
+  board->goti_map[goti_status][relative_pos].curr_gotis.insert({Current_player.id,goti_id});
+
+  if(board->goti_map[ACTIVE][relative_pos].is_star)
+    cout<<"Goti at star"<<endl;
+  // if goti set size > 1 then stack the gotis
+
 }
 
 bool move_goti(Board *board, Position_on_board goti_id)
 {
   Goti &goti = Current_player.gotis[goti_id];
   bool goti_liberated = false;
-  
+ 
+  goti_set_delete(board, goti_id, goti.status);
+
   switch(goti.status)
   {
     case SLEEPING:
     {
       goti.status = ACTIVE;
       goti.position = 0;
-
+      goti.is_immortal = true;
       break;
     }
     case ACTIVE:
@@ -1098,7 +1139,7 @@ bool move_goti(Board *board, Position_on_board goti_id)
       else
       {
         goti.position += board->dice.curr_value;
-        after_goti_moved_in_active_status(board, goti_id);
+        after_goti_moved_in_active_status(board, goti.id);
       }
       break;
     }
@@ -1123,6 +1164,7 @@ bool move_goti(Board *board, Position_on_board goti_id)
     }
   }
 
+  goti_set_add(board, goti_id, goti.status);
   set_current_player_goti_immovable(board);
 
   return goti_liberated;
