@@ -279,9 +279,8 @@ void draw_home_button(sf::RenderWindow &window)
   window.draw(sprite);
 }
 
-sf::Vector2f get_goti_pos_vector(Board *board, Position_on_board player_id, Position_on_board goti_id)
+int get_goti_relative_pos(Board *board, Position_on_board player_id, Position_on_board goti_id)
 {
-  sf::Vector2f goti_pos_vector = {0,0};
   Goti_status goti_status = board->players[player_id].gotis[goti_id].status;
   int goti_pos = board->players[player_id].gotis[goti_id].position;
   int relative_pos;
@@ -310,6 +309,15 @@ sf::Vector2f get_goti_pos_vector(Board *board, Position_on_board player_id, Posi
       break;
     }
   }
+
+  return relative_pos;
+}
+
+sf::Vector2f get_goti_pos_vector(Board *board, Position_on_board player_id, Position_on_board goti_id)
+{
+  sf::Vector2f goti_pos_vector = {0,0};
+  Goti_status goti_status = board->players[player_id].gotis[goti_id].status;
+  int relative_pos = get_goti_relative_pos(board, player_id, goti_id);
 
   goti_pos_vector = board->goti_map[goti_status][relative_pos];
 
@@ -1014,7 +1022,6 @@ void roll_dice(Board *board, Command_q *command_q)
     count = 1;
     random_animation = 0;
 
-    // did the same player rolled 3 consecutive 6s?
     if(same_player_rolled_3_consecutive_6s(board->current_player, board->dice.curr_value))
       board->dice.curr_value = (rand() % (NUM_OF_DICE_FACES -1)) + 1;
   }
@@ -1031,7 +1038,7 @@ void set_current_player_goti_immovable(Board *board)
     goti.is_movable = false;
 }
 
-void liberate_moving_goti(Board *board, Position_on_board goti_id)
+bool liberate_moving_goti(Board *board, Position_on_board goti_id)
 {
   Goti &goti = Current_player.gotis[goti_id];
 
@@ -1045,11 +1052,28 @@ void liberate_moving_goti(Board *board, Position_on_board goti_id)
     board->finish_game = true;
     cout<<"Game over: player won - "<<Current_player.color<<" ("<<Current_player.id<<")"<<endl;
   }
+
+  return true;
 }
 
-void move_goti(Board *board, Position_on_board goti_id)
+void after_goti_moved_in_active_status(Board *board, Position_on_board goti_id)
 {
   Goti &goti = Current_player.gotis[goti_id];
+  int relative_pos = get_goti_relative_pos(board, Current_player.id, goti.id);
+
+  // if goti position is immortal
+  if(0)
+  {
+
+  }
+  else
+    goti.is_immortal = false;
+}
+
+bool move_goti(Board *board, Position_on_board goti_id)
+{
+  Goti &goti = Current_player.gotis[goti_id];
+  bool goti_liberated = false;
   
   switch(goti.status)
   {
@@ -1064,7 +1088,7 @@ void move_goti(Board *board, Position_on_board goti_id)
     {      
       if((goti.position + board->dice.curr_value) == (NUM_OF_LAP_POSITIONS - 2) + 6)
       {
-        liberate_moving_goti(board, goti_id);
+        goti_liberated = liberate_moving_goti(board, goti_id);
       }
       else if((goti.position + board->dice.curr_value) > (NUM_OF_LAP_POSITIONS - 2))
       {
@@ -1074,6 +1098,7 @@ void move_goti(Board *board, Position_on_board goti_id)
       else
       {
         goti.position += board->dice.curr_value;
+        after_goti_moved_in_active_status(board, goti_id);
       }
       break;
     }
@@ -1083,7 +1108,7 @@ void move_goti(Board *board, Position_on_board goti_id)
       
       if(goti.position == NUM_OF_FINAL_POSITIONS)
       {
-        liberate_moving_goti(board, goti_id);
+        goti_liberated = liberate_moving_goti(board, goti_id);
       }
       else if(goti.position > NUM_OF_FINAL_POSITIONS)
       {
@@ -1099,6 +1124,8 @@ void move_goti(Board *board, Position_on_board goti_id)
   }
 
   set_current_player_goti_immovable(board);
+
+  return goti_liberated;
 }
 
 void set_movable_gotis(Board *board)
@@ -1318,11 +1345,12 @@ void game_thread(Board *board, Command_q *command_q)
       }
       case MOVE_GOTI:
       {
-        move_goti(board,(Position_on_board)data);
+        bool goti_liberated = move_goti(board,(Position_on_board)data);
         Current_player.taking_turn = false;
 
         if( board->dice.curr_value != DICE_RANGE_END &&
-            !board->finish_game )
+            !board->finish_game &&
+            !goti_liberated )
         {
           board->current_player = next_active_player(board);
         }
