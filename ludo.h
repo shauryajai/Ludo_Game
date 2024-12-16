@@ -130,9 +130,9 @@ struct Player {
 struct Dice {
   int curr_value;
   bool rolled;
+  bool animate;
   pair<int, int> range_of_values;
   int num_of_faces;
-  map<int,string> faces;
   sf::Vector2f pos_vector;
 };
 

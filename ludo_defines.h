@@ -20,21 +20,17 @@
 #define DICE_RANGE_START 1
 #define DICE_RANGE_END 6
 
-#define IMAGE_HOME_SCREEN           "..\\Images\\home_screen.png"
-#define IMAGE_LUDO_BOARD            "..\\Images\\ludo_board.png"
-#define IMAGE_HOME_BUTTON           "..\\Images\\home_button.png"
-#define IMAGE_REMOVE_PLAYER_BUTTON  "..\\Images\\remove_player_button.png"
-#define IMAGE_EXIT_GAME             "..\\Images\\exit_game.png"
-#define IMAGE_ADD_PLAYER            "..\\Images\\add_player.png"
-#define IMAGE_REMOVE_PLAYER_SCREEN  "..\\Images\\remove_player.png"
-#define IMAGE_FINISH_SCREEN         "..\\Images\\finish_screen.png"
-#define IMAGE_DICE_FACE_0           "..\\Images\\dice_face_0.png"
-#define IMAGE_DICE_FACE_1           "..\\Images\\dice_face_1.png"
-#define IMAGE_DICE_FACE_2           "..\\Images\\dice_face_2.png"
-#define IMAGE_DICE_FACE_3           "..\\Images\\dice_face_3.png"
-#define IMAGE_DICE_FACE_4           "..\\Images\\dice_face_4.png"
-#define IMAGE_DICE_FACE_5           "..\\Images\\dice_face_5.png"
-#define IMAGE_DICE_FACE_6           "..\\Images\\dice_face_6.png"
+#define IMAGE_HOME_SCREEN           "Images\\home_screen.png"
+#define IMAGE_LUDO_BOARD            "Images\\ludo_board.png"
+#define IMAGE_HOME_BUTTON           "Images\\home_button.png"
+#define IMAGE_REMOVE_PLAYER_BUTTON  "Images\\remove_player_button.png"
+#define IMAGE_EXIT_GAME             "Images\\exit_game.png"
+#define IMAGE_ADD_PLAYER            "Images\\add_player.png"
+#define IMAGE_REMOVE_PLAYER_SCREEN  "Images\\remove_player.png"
+#define IMAGE_FINISH_SCREEN         "Images\\finish_screen.png"
+#define IMAGE_DICE_PLAYER           "Images\\dice\\dice_player_"
+#define IMAGE_DICE_FACE             "_face_"
+#define IMAGE_TYPE                  ".png"
 
 #define PLAY_BUTTON_RADIUS 75
 #define PLAY_BUTTON_POS_X 294

@@ -3,6 +3,15 @@
 std::mutex queueMutex;
 std::condition_variable queueCV;  // Used for thread synchronization
 
+template <typename T1, typename T2>
+string dice_image(T1 a, T2 b) {
+    return string(IMAGE_DICE_PLAYER) +
+           (is_same<T1, char>::value ? string(1, a) : to_string(a)) +
+           IMAGE_DICE_FACE +
+           to_string(b) +
+           IMAGE_TYPE;
+}
+
 void seedRandom() {
     unsigned int seed = time(NULL);
     
@@ -199,16 +208,9 @@ void init_dice(Dice &dice)
 {
   dice.curr_value = 0;
   dice.rolled = false;
+  dice.animate = false;
   dice.num_of_faces = NUM_OF_DICE_FACES;
   dice.range_of_values = {DICE_RANGE_START,DICE_RANGE_END};
-
-  dice.faces.insert({{0,IMAGE_DICE_FACE_0},
-                     {1,IMAGE_DICE_FACE_1},
-                     {2,IMAGE_DICE_FACE_2},
-                     {3,IMAGE_DICE_FACE_3},
-                     {4,IMAGE_DICE_FACE_4},
-                     {5,IMAGE_DICE_FACE_5},
-                     {6,IMAGE_DICE_FACE_6}});
 
   dice.pos_vector = get_dice_pos();
 }
@@ -464,7 +466,16 @@ void draw_dice(sf::RenderWindow &window, Board *board)
   RectangleShape square;
   Texture texture;
   Sprite sprite;
-  string file = board->dice.faces[board->dice.curr_value];
+  string file;
+
+  if(board->dice.animate)
+  {
+    file = dice_image('X',board->dice.curr_value);
+  }
+  else
+  {
+    file = dice_image(Current_player.id,board->dice.curr_value);
+  }
 
   if (!texture.loadFromFile(file)) 
     return;
@@ -1116,6 +1127,7 @@ void roll_dice(Board *board, Command_q *command_q)
   }
 
   board->dice.curr_value = rand() % NUM_OF_DICE_FACES + 1;
+  board->dice.animate = true;
 
   if(random_animation == 0)
   {
@@ -1132,6 +1144,7 @@ void roll_dice(Board *board, Command_q *command_q)
     board->dice.rolled = true;
     count = 1;
     random_animation = 0;
+    board->dice.animate = false;
 
     if(same_player_rolled_3_consecutive_6s(board->current_player, board->dice.curr_value))
       board->dice.curr_value = (rand() % (NUM_OF_DICE_FACES -1)) + 1;
@@ -1329,11 +1342,14 @@ void set_movable_gotis(Board *board)
 
 void dice_rolled(Board *board)
 {
-  cout<<"Dice Rolled! Player<"<<Current_player.color
-      <<"> Dice value<"
-      <<board->dice.curr_value
-      <<">"
-      <<endl;
+  if(!board->dice.animate)
+  {
+    cout<<"Dice Rolled! Player<"<<Current_player.color
+    <<"> Dice value<"
+    <<board->dice.curr_value
+    <<">"
+    <<endl;
+  }
 
   Current_player.taking_turn = true;
   set_movable_gotis(board);
@@ -1359,7 +1375,9 @@ void game_thread(Board *board, Command_q *command_q)
         command = command_q->front().first;
         data = command_q->front().second;
         command_q->pop();
-        cout<<command<<endl;
+
+        if(!board->dice.animate)
+          cout<<command<<endl;
     }
     else command = IDLE;
 
