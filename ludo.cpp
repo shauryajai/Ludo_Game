@@ -103,32 +103,31 @@ sf::Color __to_sfml_color(Player_color color)
   return Color::White;
 }
 
-void init_all_gotis(vector<Goti> &gotis, Player player)
+void init_all_gotis(Board *board, Player player)
 {
   Goti goti;
   int i;
 
-  gotis.clear();
+  board->players[player.id].gotis.clear();
 
   for(i=0; i<NUM_OF_GOTIS; i++)
   {
     goti.id = (Position_on_board)i;
     goti.color = __to_sfml_color(player.color);
-    goti.is_immortal = false;
     goti.is_movable = false;
     goti.position = i;
     goti.status = SLEEPING;
 
-    gotis.push_back(goti);
+    board->players[player.id].gotis.push_back(goti);
   }
 }
 
-void init_all_players(vector<Player> &players)
+void init_all_players(Board *board)
 {
   Player player;
   int i;
 
-  players.clear();
+  board->players.clear();
 
   for(i=0; i<NUM_OF_TOTAL_PLAYERS; i++)
   {
@@ -140,9 +139,8 @@ void init_all_players(vector<Player> &players)
     player.taking_turn = false;
     player.confirm_removal = false;
 
-    init_all_gotis(player.gotis, player);
-
-    players.push_back(player);
+    board->players.push_back(player);
+    init_all_gotis(board, player);
   }
 }
 
@@ -170,7 +168,7 @@ void init_board(Board *board)
   board->num_of_lap_positions = NUM_OF_LAP_POSITIONS;
   board->num_of_final_positions = NUM_OF_FINAL_POSITIONS;
   
-  init_all_players(board->players);
+  init_all_players(board);
 
   board->active_players = 0;
   board->current_player = -1;
@@ -218,7 +216,6 @@ void remove_player(Board *board, Position_on_board pos)
 
   for(Goti &goti : board->players[pos].gotis)
   {
-    goti.is_immortal = false;
     goti.is_movable = false;
     goti.status = SLEEPING;
   }
@@ -313,39 +310,62 @@ int get_goti_relative_pos(Board *board, Position_on_board player_id, Position_on
   return relative_pos;
 }
 
-sf::Vector2f get_goti_pos_vector(Board *board, Position_on_board player_id, Position_on_board goti_id)
+void adjust_stacked_goti_pos( sf::Vector2f &goti_pos_vector,
+                              float &goti_radius,
+                              int goti_stacking_offset )
 {
-  sf::Vector2f goti_pos_vector = {0,0};
-  Goti_status goti_status = board->players[player_id].gotis[goti_id].status;
-  int relative_pos = get_goti_relative_pos(board, player_id, goti_id);
+  int offset = goti_stacking_offset * STACKED_GOTI_OFFSET;
 
-  goti_pos_vector = board->goti_map[goti_status][relative_pos].pos;
-
-  return goti_pos_vector;
+  goti_pos_vector.x += offset;
+  goti_pos_vector.y -= offset;
+  goti_radius = STACKED_GOTI_RADIUS;
 }
 
 void draw_gotis(sf::RenderWindow &window, Board *board)
 {
   using namespace sf;
-  CircleShape piece(GOTI_RADIUS);
-  CircleShape shadow(piece.getRadius());
-  Vector2f goti_pos_vector; 
-    
+  CircleShape piece;
+  CircleShape shadow;
+  float goti_radius;
+  Vector2f goti_pos_vector;
+  int relative_pos;
+
   for(Player &player : board->players)
   {
     for(Goti &goti : player.gotis)
     {
-      goti_pos_vector = get_goti_pos_vector(board, player.id, goti.id);
+      goti_radius = GOTI_RADIUS;
+      relative_pos = get_goti_relative_pos(board, player.id, goti.id);
+
+      goti_pos_vector = board->goti_map[goti.status][relative_pos].pos;
+
+      // Stacking gotis
+      if(board->goti_map[goti.status][relative_pos].gotis_in_blk.size() > 1)
+      {
+        adjust_stacked_goti_pos( goti_pos_vector,
+                                 goti_radius,
+                                 board->goti_map[goti.status][relative_pos].stack_offset );
+        
+        board->goti_map[goti.status][relative_pos].stack_offset ++;
+
+        if( board->goti_map[goti.status][relative_pos].stack_offset >= 
+            board->goti_map[goti.status][relative_pos].gotis_in_blk.size() )
+        {
+          board->goti_map[goti.status][relative_pos].stack_offset = 0;
+        }
+      }
 
       // Below code could look like magic but it's not.
       // Reducing Goti_BLK_RADIUS from x and y coordinates because sfml draws the circle 
       // (or any other entity) starting from the top left position.
-      goti_pos_vector.x -= GOTI_RADIUS;
-      goti_pos_vector.y -= GOTI_RADIUS;
+      goti_pos_vector.x -= goti_radius;
+      goti_pos_vector.y -= goti_radius;
 
+      piece.setRadius(goti_radius);
       piece.setPosition(goti_pos_vector);
 
       // draw goti shadow
+      shadow.setRadius(piece.getRadius());
       shadow.setFillColor(GOTI_SHADOW_COLOR);
       shadow.setPosition(piece.getPosition() + Vector2f(GOTI_SHADOW_OFFSET));
       window.draw(shadow);
@@ -820,6 +840,17 @@ bool is_dice_clicked(Board *board, sf::Vector2f mousePos)
   return false;
 }
 
+sf::Vector2f get_goti_pos_vector(Board *board, Position_on_board player_id, Position_on_board goti_id)
+{
+  sf::Vector2f goti_pos_vector = {0,0};
+  Goti_status goti_status = board->players[player_id].gotis[goti_id].status;
+  int relative_pos = get_goti_relative_pos(board, player_id, goti_id);
+
+  goti_pos_vector = board->goti_map[goti_status][relative_pos].pos;
+
+  return goti_pos_vector;
+}
+
 bool is_goti_clicked(Board *board, sf::Vector2f mousePos, uint32_t &data)
 {
   sf::Vector2f goti_pos_vector;
@@ -1059,60 +1090,55 @@ bool liberate_moving_goti(Board *board, Position_on_board goti_id)
 void goti_set_delete(Board *board, Position_on_board goti_id, Goti_status goti_status)
 {
   int relative_pos = get_goti_relative_pos(board, Current_player.id, goti_id);
-  board->goti_map[goti_status][relative_pos].curr_gotis.erase({Current_player.id,goti_id});
-
-  //TODO: if goti set size < 2 then un-stack the gotis
-
+  board->goti_map[goti_status][relative_pos].gotis_in_blk.erase({Current_player.id,goti_id});
 }
 
-void after_goti_moved_in_active_status(Board *board, Position_on_board goti_id)
+void goti_set_add(Board *board, Position_on_board goti_id, Goti_status goti_status)
+{
+  int relative_pos = get_goti_relative_pos(board, Current_player.id, goti_id);
+
+  board->goti_map[goti_status][relative_pos].gotis_in_blk.insert({Current_player.id,goti_id});
+
+  if(board->goti_map[goti_status][relative_pos].is_star)
+    cout<<"Goti at star"<<endl;
+}
+
+bool after_goti_moved_in_active_status(Board *board, Position_on_board goti_id)
 {
   Goti &goti = Current_player.gotis[goti_id];
   int relative_pos = get_goti_relative_pos(board, Current_player.id, goti.id);
 
   // if goti position is star
-  if(board->goti_map[ACTIVE][relative_pos].is_star)
-    goti.is_immortal = true;
-  else
+  if(!board->goti_map[ACTIVE][relative_pos].is_star)
   {
-    goti.is_immortal = false;
-
     // if any other player is already in the spot, then cut it
-    if(board->goti_map[ACTIVE][relative_pos].curr_gotis.size() == 1)
+    if(board->goti_map[ACTIVE][relative_pos].gotis_in_blk.size() == 1)
     {
-      for (auto& curr_gotis : board->goti_map[ACTIVE][relative_pos].curr_gotis)
+      for (auto& goti_in_blk : board->goti_map[ACTIVE][relative_pos].gotis_in_blk)
       {
-        Position_on_board player_id_in_set = curr_gotis.first;
-        Position_on_board goti_id_in_set = curr_gotis.second;
+        Position_on_board player_id_in_set = goti_in_blk.first;
+        Position_on_board goti_id_in_set = goti_in_blk.second;
 
         if(player_id_in_set != Current_player.id)
         {
           board->players[player_id_in_set].gotis[goti_id_in_set].status = SLEEPING;
           board->players[player_id_in_set].gotis[goti_id_in_set].position = goti_id_in_set;
 
-          board->goti_map[ACTIVE][relative_pos].curr_gotis.clear();
+          board->goti_map[ACTIVE][relative_pos].gotis_in_blk.clear();
+
+          return true;
         }
       }
     }
-
   }
-}
 
-void goti_set_add(Board *board, Position_on_board goti_id, Goti_status goti_status)
-{
-  int relative_pos = get_goti_relative_pos(board, Current_player.id, goti_id);
-  board->goti_map[goti_status][relative_pos].curr_gotis.insert({Current_player.id,goti_id});
-
-  if(board->goti_map[ACTIVE][relative_pos].is_star)
-    cout<<"Goti at star"<<endl;
-  //TODO: if goti set size > 1 then stack the gotis
-
+  return false;
 }
 
 bool move_goti(Board *board, Position_on_board goti_id)
 {
   Goti &goti = Current_player.gotis[goti_id];
-  bool goti_liberated = false;
+  bool repeat_turn = false;
  
   goti_set_delete(board, goti_id, goti.status);
 
@@ -1122,14 +1148,13 @@ bool move_goti(Board *board, Position_on_board goti_id)
     {
       goti.status = ACTIVE;
       goti.position = 0;
-      goti.is_immortal = true; //TODO: Seems like we dont need this field in goti struct
       break;
     }
     case ACTIVE:
     {      
       if((goti.position + board->dice.curr_value) == (NUM_OF_LAP_POSITIONS - 2) + 6)
       {
-        goti_liberated = liberate_moving_goti(board, goti_id);
+        repeat_turn = liberate_moving_goti(board, goti_id);
       }
       else if((goti.position + board->dice.curr_value) > (NUM_OF_LAP_POSITIONS - 2))
       {
@@ -1139,7 +1164,7 @@ bool move_goti(Board *board, Position_on_board goti_id)
       else
       {
         goti.position += board->dice.curr_value;
-        after_goti_moved_in_active_status(board, goti.id);
+        repeat_turn = after_goti_moved_in_active_status(board, goti.id);
       }
       break;
     }
@@ -1149,7 +1174,7 @@ bool move_goti(Board *board, Position_on_board goti_id)
       
       if(goti.position == NUM_OF_FINAL_POSITIONS)
       {
-        goti_liberated = liberate_moving_goti(board, goti_id);
+        repeat_turn = liberate_moving_goti(board, goti_id);
       }
       else if(goti.position > NUM_OF_FINAL_POSITIONS)
       {
@@ -1167,7 +1192,7 @@ bool move_goti(Board *board, Position_on_board goti_id)
   goti_set_add(board, goti_id, goti.status);
   set_current_player_goti_immovable(board);
 
-  return goti_liberated;
+  return repeat_turn;
 }
 
 void set_movable_gotis(Board *board)
@@ -1283,7 +1308,7 @@ void game_thread(Board *board, Command_q *command_q)
         {
           player.num_of_liberations = 0;
           player.taking_turn = false;
-          init_all_gotis(player.gotis, player);
+          init_all_gotis(board, player);
         }
 
         board->screen = PLAY;
@@ -1390,12 +1415,12 @@ void game_thread(Board *board, Command_q *command_q)
       }
       case MOVE_GOTI:
       {
-        bool goti_liberated = move_goti(board,(Position_on_board)data);
+        bool repeat_turn = move_goti(board,(Position_on_board)data);
         Current_player.taking_turn = false;
 
         if( board->dice.curr_value != DICE_RANGE_END &&
             !board->finish_game &&
-            !goti_liberated )
+            !repeat_turn )
         {
           board->current_player = next_active_player(board);
         }

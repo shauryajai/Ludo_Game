@@ -113,7 +113,6 @@ struct Goti {
   sf::Color color;
   Goti_status status;
   int position;
-  bool is_immortal;
   bool is_movable;
 };
 
@@ -140,7 +139,8 @@ struct Dice {
 struct goti_map_info {
   sf::Vector2f pos;
   bool is_star;
-  set<pair<Position_on_board,Position_on_board>> curr_gotis;
+  set<pair<Position_on_board,Position_on_board>> gotis_in_blk; // player_id, goti_id
+  int stack_offset;
 };
 
 struct Board {
