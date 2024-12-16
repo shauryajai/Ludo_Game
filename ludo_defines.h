@@ -178,7 +178,7 @@
 #define GOTI_OUTLINE_COLOR Color::Black
 #define GOTI_OUTLINE_THICKNESS 2
 #define GOTI_SHADOW_OFFSET 5,5
-#define GOTI_SHADOW_COLOR Color(0, 0, 0, 100) // Semi-transparent black color
+#define SEMI_TRANSPARENT_BLACK_COLOR Color(0, 0, 0, 100)
 
        
 #define Command_q ludo_queue<pair<Command,uint32_t>>

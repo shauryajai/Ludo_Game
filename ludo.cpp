@@ -39,6 +39,57 @@ int random(int min, int max)
   return rand() % (max - min + 1) + min;
 }
 
+bool current_player_box_toggler()
+{
+  static int count = 0;
+  static bool current_player_box_toggle = false;
+
+  if(count >= 20)
+  {
+    current_player_box_toggle ^= true;
+    count = 0;
+  }
+  else
+  {
+    count ++;
+  }
+
+  return current_player_box_toggle;
+}
+
+bool highlight_dice_toggler()
+{
+  static int count = 0;
+  static bool toggle = false;
+
+  if(count >= 5)
+  {
+    toggle ^= true;
+    count = 0;
+  }
+  else
+  {
+    count ++;
+  }
+
+  return toggle;
+}
+
+void goti_movable_animation_toggler(Board *board)
+{
+  static int count = 0;
+
+  if(count >= 35)
+  {
+    board->is_goti_movable_animation_toggle ^= true;
+    count = 0;
+
+    return;
+  }
+
+  count ++;
+}
+
 sf::Vector2f get_player_pos(Position_on_board player_pos)
 {
   sf::Vector2f pos_vector;
@@ -262,6 +313,26 @@ void drawBoard(sf::RenderWindow &window)
   window.draw(sprite);
 }
 
+void draw_current_player_box(sf::RenderWindow &window, Board *board)
+{
+  using namespace sf;
+  Vector2f pos;
+  RectangleShape square;
+
+  if(!current_player_box_toggler()) return;
+
+  pos.x = Current_player.pos_vector.x;
+  pos.y = Current_player.pos_vector.y;
+
+  square.setPosition(pos);
+  square.setSize(Vector2f(160,160));
+  square.setOutlineColor(SEMI_TRANSPARENT_BLACK_COLOR);
+  square.setOutlineThickness(30);
+  square.setFillColor(Color::Transparent);
+
+  window.draw(square);
+}
+
 void draw_home_button(sf::RenderWindow &window) 
 {
   using namespace sf;
@@ -366,7 +437,7 @@ void draw_gotis(sf::RenderWindow &window, Board *board)
 
       // draw goti shadow
       shadow.setRadius(piece.getRadius());
-      shadow.setFillColor(GOTI_SHADOW_COLOR);
+      shadow.setFillColor(SEMI_TRANSPARENT_BLACK_COLOR);
       shadow.setPosition(piece.getPosition() + Vector2f(GOTI_SHADOW_OFFSET));
       window.draw(shadow);
 
@@ -379,7 +450,7 @@ void draw_gotis(sf::RenderWindow &window, Board *board)
       {
         piece.setOutlineColor(Color::White);
         // piece.setOutlineThickness(GOTI_OUTLINE_THICKNESS+2);
-        // piece.setFillColor(GOTI_SHADOW_COLOR);
+        // piece.setFillColor(SEMI_TRANSPARENT_BLACK_COLOR);
       }
 
       window.draw(piece);
@@ -387,19 +458,39 @@ void draw_gotis(sf::RenderWindow &window, Board *board)
   }
 }
 
-void draw_dice(sf::RenderWindow &window, Dice &dice) 
+void draw_dice(sf::RenderWindow &window, Board *board) 
 {
   using namespace sf;
+  RectangleShape square;
   Texture texture;
   Sprite sprite;
-  string file = dice.faces[dice.curr_value];
+  string file = board->dice.faces[board->dice.curr_value];
 
   if (!texture.loadFromFile(file)) 
     return;
   
   sprite = Sprite(texture);
-  sprite.setPosition(dice.pos_vector);
+  sprite.setPosition(board->dice.pos_vector);
   window.draw(sprite);
+
+  // Highlight dice if rollable
+  if( highlight_dice_toggler() &&
+      !Current_player.taking_turn &&
+      board->active_players > 1 )
+  {
+    Vector2f pos = board->dice.pos_vector;
+
+    pos.x += 3;
+    pos.y += 3;
+
+    square.setPosition(pos);
+    square.setSize(Vector2f(DICE_LEN-5,DICE_WID-5));
+    square.setOutlineColor(SEMI_TRANSPARENT_BLACK_COLOR);
+    square.setOutlineThickness(10);
+    square.setFillColor(Color::Transparent);
+
+    window.draw(square);
+  }
 }
 
 void draw_remove_player_screen(sf::RenderWindow &window, Player &player)
@@ -469,9 +560,13 @@ void drawHomeScreen(sf::RenderWindow &window)
 void display_play_screen(sf::RenderWindow &window, Board *board)
 {
   drawBoard(window);
+
+  if(board->active_players > 1)
+    draw_current_player_box(window, board);
+
   draw_home_button(window);
   draw_gotis(window, board); // draw all gotis of all active players
-  draw_dice(window, board->dice);
+  draw_dice(window, board);
   draw_add_remove_player_button(window, board->players);
 }
 
@@ -971,21 +1066,6 @@ void get_command(Board *board, sf::RenderWindow &window, Command_q *command_q)
       }
     }
   }
-}
-
-void goti_movable_animation_toggler(Board *board)
-{
-  static int count = 0;
-
-  if(count >= 35)
-  {
-    board->is_goti_movable_animation_toggle ^= true;
-    count = 0;
-
-    return;
-  }
-
-  count ++;
 }
 
 void command_thread(Board *board, Command_q *command_q)
